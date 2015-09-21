@@ -1,3 +1,7 @@
+2015-09-21
+==========
+* forked to softak098/duplicati
+
 2015-09-15
 ==========
 * Improved use of non-default --oauth-url
