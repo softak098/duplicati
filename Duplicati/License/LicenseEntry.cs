@@ -53,7 +53,6 @@ namespace Duplicati.License
         /// <param name="licensefile">The license for the component</param>
         public LicenseEntry(string title, string urlfile, string licensefile, string jsonfile)
         {
-            // to je fakt divny
             Title = title;
             if (!string.IsNullOrEmpty(urlfile) && System.IO.File.Exists(urlfile))
                 Url = System.IO.File.ReadAllText(urlfile).Trim();
