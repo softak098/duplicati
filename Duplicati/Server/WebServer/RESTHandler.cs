@@ -37,7 +37,7 @@ namespace Duplicati.Server.WebServer
         static RESTHandler()
         {
             var lst = 
-                from n in typeof(RESTHandler).Assembly.DefinedTypes
+                from n in typeof(RESTHandler).Assembly.GetTypes()
                 where
                     n.Namespace == typeof(IRESTMethod).Namespace
                     &&
@@ -172,7 +172,7 @@ namespace Duplicati.Server.WebServer
 
             module = module.Trim('/');
 
-            var key = string.Join("/", request.Uri.Segments.Skip(API_URI_SEGMENTS + 1)).Trim('/');
+            var key = string.Join("", request.Uri.Segments.Skip(API_URI_SEGMENTS + 1)).Trim('/');
 
             var method = request.Method;
             if (!string.IsNullOrWhiteSpace(request.Headers["X-HTTP-Method-Override"]))
