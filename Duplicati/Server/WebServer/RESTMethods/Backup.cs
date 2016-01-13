@@ -41,7 +41,7 @@ namespace Duplicati.Server.WebServer.RESTMethods
 
         private void SearchFiles(IBackup backup, string filterstring, RequestInfo info)
         {
-            var filter = (filterstring ?? "").Split(new string[] { System.IO.Path.PathSeparator.ToString() }, StringSplitOptions.RemoveEmptyEntries);
+            var filter = Library.Utility.Uri.UrlDecode(filterstring ?? "").Split(new string[] { System.IO.Path.PathSeparator.ToString() }, StringSplitOptions.RemoveEmptyEntries);
             var timestring = info.Request.QueryString["time"].Value;
             var allversion = Duplicati.Library.Utility.Utility.ParseBool(info.Request.QueryString["all-versions"].Value, false);
 
@@ -281,13 +281,36 @@ namespace Duplicati.Server.WebServer.RESTMethods
                 return;
             }
         }
+
+        private void UpdateDatabasePath(IBackup backup, RequestInfo info, bool move)
+        {
+            var np = info.Request.Form["path"].Value;
+            if (string.IsNullOrWhiteSpace(np))
+                info.ReportClientError("No target path supplied");
+            else if (!Path.IsPathRooted(np))
+                info.ReportClientError("Target path is relative, please supply a fully qualified path");
+            else
+            {
+                if (move && (File.Exists(np) || Directory.Exists(np)))
+                    info.ReportClientError("A file already exists at the new location");
+                else
+                {
+                    if (move)
+                        File.Move(backup.DBPath, np);
+
+                    Program.DataConnection.UpdateBackupDBPath(backup, np);
+                }
+                    
+            }
+            
+        }
             
         public void GET(string key, RequestInfo info)
         {
             var parts = (key ?? "").Split(new char[] { '/' }, 2);
             var bk = Program.DataConnection.GetBackup(parts.First());
             if (bk == null)
-                info.ReportClientError("Invalid or missing backup id");
+                info.ReportClientError("Invalid or missing backup id", System.Net.HttpStatusCode.NotFound);
             else
             {
                 if (parts.Length > 1)
@@ -297,7 +320,7 @@ namespace Duplicati.Server.WebServer.RESTMethods
                     switch (operation)
                     {
                         case "files":
-                            SearchFiles(bk, parts.Last().Split(new char[] { '/' }, 2).LastOrDefault(), info);
+                            SearchFiles(bk, parts.Last().Split(new char[] { '/' }, 2).Skip(1).FirstOrDefault(), info);
                             return;
                         case "log":
                             FetchLogData(bk, info);
@@ -356,6 +379,14 @@ namespace Duplicati.Server.WebServer.RESTMethods
                         case "deletedb":
                             System.IO.File.Delete(bk.DBPath);
                             info.OutputOK();
+                            return;
+
+                        case "movedb":     
+                            UpdateDatabasePath(bk, info, true);
+                            return;
+
+                        case "updatedb":
+                            UpdateDatabasePath(bk, info, false);
                             return;
 
                         case "restore":
